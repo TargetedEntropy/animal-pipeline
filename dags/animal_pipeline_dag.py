@@ -40,7 +40,7 @@ dag = DAG(
     'animal_pipeline',
     default_args=default_args,
     description='Process YouTube videos to detect and extract animal footage',
-    schedule_interval=None,  # Manual trigger only (can be changed to '@daily' for daily runs)
+    schedule_interval=timedelta(minutes=15),  # Runs every 15 minutes
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=['video', 'animals', 'yolo', 'ml'],
@@ -51,7 +51,7 @@ download_task = PythonOperator(
     task_id='download_video',
     python_callable=download_video,
     op_kwargs={
-        'search_query': '{{ dag_run.conf.get("search_query", "dog") }}',
+        'search_query': '{{ dag_run.conf.get("search_query", "cat") }}',
         'output_dir': '/opt/airflow/results'
     },
     dag=dag,

@@ -1,6 +1,7 @@
 """Download Creative Commons YouTube videos using yt-dlp."""
 import os
 import logging
+import random
 from typing import Dict
 import yt_dlp
 
@@ -29,8 +30,8 @@ def download_video(search_query: str, output_dir: str = "/opt/airflow/results", 
         'outtmpl': output_path,
         'quiet': False,
         'no_warnings': False,
-        # Search for Creative Commons licensed videos
-        'default_search': 'ytsearch1',
+        # Search for Creative Commons licensed videos - get 5 results
+        'default_search': 'ytsearch5',
         'noplaylist': True,
         'age_limit': None,
     }
@@ -41,14 +42,22 @@ def download_video(search_query: str, output_dir: str = "/opt/airflow/results", 
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Search and download
-            info = ydl.extract_info(search_string, download=True)
+            # Search for multiple videos (don't download yet)
+            info = ydl.extract_info(search_string, download=False)
 
-            # Get video metadata
+            # Get video metadata - randomly select from search results
             if 'entries' in info:
-                video_info = info['entries'][0]
+                available_videos = [v for v in info['entries'] if v is not None]
+                if not available_videos:
+                    raise Exception("No videos found in search results")
+                video_info = random.choice(available_videos)
+                logger.info(f"Randomly selected video {available_videos.index(video_info) + 1} of {len(available_videos)}")
             else:
                 video_info = info
+
+            # Now download the selected video
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl_download:
+                ydl_download.download([video_info['webpage_url']])
 
             logger.info(f"Downloaded: {video_info.get('title', 'Unknown title')}")
             logger.info(f"Duration: {video_info.get('duration', 'Unknown')} seconds")
